@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import Navbar1 from "../../components/navbar/Navbar1";
 import app from "../../assets/app.png";
-import BASE_URL from "../../api";
 import { useNavigate } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import BASE_URL from "../../api";
 
 export default function Login() {
     const [loading, setLoading] = useState(false);

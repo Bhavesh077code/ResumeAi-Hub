@@ -16,24 +16,20 @@ import {
   Moon,
   Sun,
   LogOut,
-  CheckCircle,
   AlertCircle,
   Loader2,
   Sparkles,
   ChevronRight,
-  Calendar,
   Briefcase,
   FileText,
   Download,
   Share2,
   Eye,
-  EyeOff,
 } from "lucide-react";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import DashbordNavbar from "../../components/navbar/DashbordNavbar";
 import BASE_URL from "../../api";
-import axios from "axios";
 
 function UserProfile() {
   const navigate = useNavigate();
@@ -93,8 +89,12 @@ function UserProfile() {
   useEffect(() => {
     fetchUserData();
     fetchUserStats();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  /**
+   * Fetch user profile data from API
+   */
   const fetchUserData = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -147,15 +147,20 @@ function UserProfile() {
     }
   };
 
+  /**
+   * Fetch user statistics from API
+   */
   const fetchUserStats = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) return;
+
       const res = await fetch(`${BASE_URL}/user/stats`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
-      if (res.ok) {
-        setStats(data.stats);
+      if (res.ok && data.success) {
+        setStats(data.stats || stats);
       }
     } catch (error) {
       console.error("Error fetching stats:", error);
@@ -165,10 +170,18 @@ function UserProfile() {
   // ============================================================
   // 2. UPDATE PROFILE
   // ============================================================
+  /**
+   * Handle profile update submission
+   */
   const handleUpdateProfile = async () => {
     setIsSaving(true);
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please login again");
+        return;
+      }
+
       const formDataToSend = new FormData();
 
       // Append all fields
@@ -212,7 +225,16 @@ function UserProfile() {
   // ============================================================
   // 3. CHANGE PASSWORD
   // ============================================================
+  /**
+   * Handle password change submission
+   */
   const handleChangePassword = async () => {
+    // Validation
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error("Please fill in all password fields");
+      return;
+    }
+
     if (passwordData.newPassword !== passwordData.confirmPassword) {
       toast.error("Passwords do not match!");
       return;
@@ -225,6 +247,11 @@ function UserProfile() {
 
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please login again");
+        return;
+      }
+
       const res = await fetch(`${BASE_URL}/user/change-password`, {
         method: "PUT",
         headers: {
@@ -259,9 +286,14 @@ function UserProfile() {
   // ============================================================
   // 4. UPDATE SETTINGS
   // ============================================================
+  /**
+   * Update user settings
+   */
   const updateSettings = async (setting, value) => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) return;
+
       const res = await fetch(`${BASE_URL}/user/settings`, {
         method: "PUT",
         headers: {
@@ -283,9 +315,17 @@ function UserProfile() {
   // ============================================================
   // 5. DELETE ACCOUNT
   // ============================================================
+  /**
+   * Handle account deletion
+   */
   const handleDeleteAccount = async () => {
     try {
       const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("Please login again");
+        return;
+      }
+
       const res = await fetch(`${BASE_URL}/user/delete`, {
         method: "DELETE",
         headers: {
@@ -312,6 +352,9 @@ function UserProfile() {
   // ============================================================
   // 6. HANDLE LOGOUT
   // ============================================================
+  /**
+   * Handle user logout
+   */
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -322,11 +365,20 @@ function UserProfile() {
   // ============================================================
   // 7. HANDLE IMAGE UPLOAD
   // ============================================================
+  /**
+   * Handle profile image upload
+   */
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
+      // Validate file size (5MB max)
       if (file.size > 5 * 1024 * 1024) {
         toast.error("Image size must be less than 5MB");
+        return;
+      }
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast.error("Please upload an image file");
         return;
       }
       setProfileImage(file);
@@ -339,6 +391,9 @@ function UserProfile() {
   // ============================================================
   // 8. HANDLE FORM CHANGE
   // ============================================================
+  /**
+   * Handle form input changes
+   */
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -357,55 +412,61 @@ function UserProfile() {
     );
   }
 
+  // ============================================================
+  // MAIN RENDER
+  // ============================================================
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100/50">
       <DashbordNavbar />
 
-      <div className="pt-20 pb-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+      <div className="pt-20 pb-8 px-3 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        {/* Header Section */}
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4 mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2">
-              <Sparkles size={24} className="text-amber-400" />
-              My Profile
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <Sparkles size={20} className="text-amber-400 flex-shrink-0" />
+              <span>My Profile</span>
             </h1>
-            <p className="text-sm text-gray-500 mt-0.5">
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
               Manage your account settings and preferences
             </p>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {!isEditing && (
               <button
                 onClick={() => setIsEditing(true)}
-                className="px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 flex items-center gap-2 text-sm"
+                className="px-3 sm:px-5 py-2 sm:py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm"
               >
-                <Edit size={18} />
-                Edit Profile
+                <Edit size={16} className="sm:w-[18px] sm:h-[18px]" />
+                <span className="hidden xs:inline">Edit Profile</span>
+                <span className="xs:hidden">Edit</span>
               </button>
             )}
             <button
               onClick={handleLogout}
-              className="px-5 py-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-semibold transition-all duration-300 flex items-center gap-2 text-sm border border-red-200"
+              className="px-3 sm:px-5 py-2 sm:py-2.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-xl font-semibold transition-all duration-300 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm border border-red-200"
             >
-              <LogOut size={18} />
-              Logout
+              <LogOut size={16} className="sm:w-[18px] sm:h-[18px]" />
+              <span className="hidden xs:inline">Logout</span>
+              <span className="xs:hidden">Exit</span>
             </button>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Left Column - Profile Card */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden">
-              {/* Profile Image */}
+              {/* Profile Image Header */}
               <div className="relative">
-                <div className="h-32 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
-                <div className="absolute -bottom-12 left-1/2 -translate-x-1/2">
+                <div className="h-24 sm:h-28 md:h-32 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
+                <div className="absolute -bottom-10 sm:-bottom-12 left-1/2 -translate-x-1/2">
                   <div
                     className="relative cursor-pointer group"
                     onClick={() => fileInputRef.current?.click()}
                   >
-                    <div className="w-24 h-24 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100">
+                    <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white shadow-lg overflow-hidden bg-gray-100">
                       {imagePreview ? (
                         <img
                           src={imagePreview}
@@ -414,14 +475,14 @@ function UserProfile() {
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-r from-blue-500 to-indigo-600">
-                          <span className="text-white text-3xl font-bold">
+                          <span className="text-white text-2xl sm:text-3xl font-bold">
                             {user?.name?.charAt(0)?.toUpperCase() || "U"}
                           </span>
                         </div>
                       )}
                     </div>
                     <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <Camera size={24} className="text-white" />
+                      <Camera size={20} className="text-white sm:w-[24px] sm:h-[24px]" />
                     </div>
                     <input
                       ref={fileInputRef}
@@ -435,15 +496,15 @@ function UserProfile() {
               </div>
 
               {/* Profile Info */}
-              <div className="pt-14 pb-6 px-6 text-center">
+              <div className="pt-12 sm:pt-14 pb-4 sm:pb-6 px-4 sm:px-6 text-center">
                 {isEditing ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2 sm:space-y-3">
                     <input
                       type="text"
                       name="name"
                       value={formData.name}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-center text-lg font-bold"
+                      className="w-full px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-center text-base sm:text-lg font-bold"
                       placeholder="Full Name"
                     />
                     <input
@@ -451,7 +512,7 @@ function UserProfile() {
                       name="title"
                       value={formData.title}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-center text-sm text-gray-500"
+                      className="w-full px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-center text-xs sm:text-sm text-gray-500"
                       placeholder="Job Title"
                     />
                     <input
@@ -459,64 +520,74 @@ function UserProfile() {
                       name="company"
                       value={formData.company}
                       onChange={handleChange}
-                      className="w-full px-4 py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-center text-sm text-gray-500"
+                      className="w-full px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-center text-xs sm:text-sm text-gray-500"
                       placeholder="Company"
+                    />
+                    <textarea
+                      name="bio"
+                      value={formData.bio}
+                      onChange={handleChange}
+                      rows="2"
+                      className="w-full px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-center text-xs sm:text-sm text-gray-500 resize-none"
+                      placeholder="Bio"
                     />
                   </div>
                 ) : (
                   <>
-                    <h2 className="text-xl font-bold text-gray-900">
+                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">
                       {user?.name || "User"}
                     </h2>
-                    <p className="text-sm text-gray-500 mt-1">
+                    <p className="text-xs sm:text-sm text-gray-500 mt-1">
                       {user?.title || "Professional"} 
                       {user?.company && ` at ${user.company}`}
                     </p>
-                    <p className="text-sm text-gray-400 mt-2">{user?.bio || "No bio added yet"}</p>
+                    <p className="text-xs sm:text-sm text-gray-400 mt-2">
+                      {user?.bio || "No bio added yet"}
+                    </p>
                   </>
                 )}
               </div>
 
               {/* Contact Info */}
-              <div className="border-t border-gray-200/50 px-6 py-4 space-y-3">
-                <div className="flex items-center gap-3 text-sm">
-                  <Mail size={18} className="text-gray-400 flex-shrink-0" />
+              <div className="border-t border-gray-200/50 px-4 sm:px-6 py-3 sm:py-4 space-y-2 sm:space-y-3">
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Mail size={16} className="text-gray-400 flex-shrink-0 sm:w-[18px] sm:h-[18px]" />
                   {isEditing ? (
                     <input
                       type="email"
                       name="email"
                       value={formData.email}
                       onChange={handleChange}
-                      className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                      className="flex-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-xs sm:text-sm"
                     />
                   ) : (
-                    <span className="text-gray-600">{user?.email}</span>
+                    <span className="text-gray-600 truncate">{user?.email}</span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <Phone size={18} className="text-gray-400 flex-shrink-0" />
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <Phone size={16} className="text-gray-400 flex-shrink-0 sm:w-[18px] sm:h-[18px]" />
                   {isEditing ? (
                     <input
                       type="text"
                       name="phone"
                       value={formData.phone}
                       onChange={handleChange}
-                      className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                      className="flex-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-xs sm:text-sm"
                       placeholder="Phone number"
                     />
                   ) : (
                     <span className="text-gray-600">{user?.phone || "Not set"}</span>
                   )}
                 </div>
-                <div className="flex items-center gap-3 text-sm">
-                  <MapPin size={18} className="text-gray-400 flex-shrink-0" />
+                <div className="flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+                  <MapPin size={16} className="text-gray-400 flex-shrink-0 sm:w-[18px] sm:h-[18px]" />
                   {isEditing ? (
                     <input
                       type="text"
                       name="location"
                       value={formData.location}
                       onChange={handleChange}
-                      className="flex-1 px-3 py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                      className="flex-1 px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-xs sm:text-sm"
                       placeholder="Location"
                     />
                   ) : (
@@ -526,11 +597,11 @@ function UserProfile() {
               </div>
 
               {/* Social Links */}
-              <div className="border-t border-gray-200/50 px-6 py-4">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              <div className="border-t border-gray-200/50 px-4 sm:px-6 py-3 sm:py-4">
+                <p className="text-[10px] sm:text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2 sm:mb-3">
                   Social Links
                 </p>
-                <div className="space-y-2">
+                <div className="space-y-1.5 sm:space-y-2">
                   {isEditing ? (
                     <>
                       <input
@@ -538,7 +609,7 @@ function UserProfile() {
                         name="github"
                         value={formData.github}
                         onChange={handleChange}
-                        className="w-full px-3 py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                        className="w-full px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-xs sm:text-sm"
                         placeholder="GitHub URL"
                       />
                       <input
@@ -546,7 +617,7 @@ function UserProfile() {
                         name="linkedin"
                         value={formData.linkedin}
                         onChange={handleChange}
-                        className="w-full px-3 py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                        className="w-full px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-xs sm:text-sm"
                         placeholder="LinkedIn URL"
                       />
                       <input
@@ -554,7 +625,7 @@ function UserProfile() {
                         name="twitter"
                         value={formData.twitter}
                         onChange={handleChange}
-                        className="w-full px-3 py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                        className="w-full px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-xs sm:text-sm"
                         placeholder="Twitter URL"
                       />
                       <input
@@ -562,16 +633,16 @@ function UserProfile() {
                         name="website"
                         value={formData.website}
                         onChange={handleChange}
-                        className="w-full px-3 py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
+                        className="w-full px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-xs sm:text-sm"
                         placeholder="Website URL"
                       />
                     </>
                   ) : (
-                    <div className="space-y-1 text-sm text-gray-500">
-                      {user?.github && <p>🔗 GitHub: {user.github}</p>}
-                      {user?.linkedin && <p>🔗 LinkedIn: {user.linkedin}</p>}
-                      {user?.twitter && <p>🔗 Twitter: {user.twitter}</p>}
-                      {user?.website && <p>🔗 Website: {user.website}</p>}
+                    <div className="space-y-1 text-xs sm:text-sm text-gray-500">
+                      {user?.github && <p className="truncate">🔗 GitHub: {user.github}</p>}
+                      {user?.linkedin && <p className="truncate">🔗 LinkedIn: {user.linkedin}</p>}
+                      {user?.twitter && <p className="truncate">🔗 Twitter: {user.twitter}</p>}
+                      {user?.website && <p className="truncate">🔗 Website: {user.website}</p>}
                       {!user?.github && !user?.linkedin && !user?.twitter && !user?.website && (
                         <p className="text-gray-400">No social links added</p>
                       )}
@@ -582,23 +653,23 @@ function UserProfile() {
 
               {/* Edit/Save Actions */}
               {isEditing && (
-                <div className="border-t border-gray-200/50 px-6 py-4 flex gap-2">
+                <div className="border-t border-gray-200/50 px-4 sm:px-6 py-3 sm:py-4 flex gap-2">
                   <button
                     onClick={() => setIsEditing(false)}
-                    className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-2"
+                    className="flex-1 py-2 sm:py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all duration-300 flex items-center justify-center gap-1.5 text-xs sm:text-sm"
                   >
-                    <X size={18} />
+                    <X size={16} />
                     Cancel
                   </button>
                   <button
                     onClick={handleUpdateProfile}
                     disabled={isSaving}
-                    className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 flex items-center justify-center gap-2 disabled:opacity-50"
+                    className="flex-1 py-2 sm:py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 flex items-center justify-center gap-1.5 text-xs sm:text-sm disabled:opacity-50"
                   >
                     {isSaving ? (
-                      <Loader2 size={18} className="animate-spin" />
+                      <Loader2 size={16} className="animate-spin" />
                     ) : (
-                      <Save size={18} />
+                      <Save size={16} />
                     )}
                     {isSaving ? "Saving..." : "Save"}
                   </button>
@@ -608,66 +679,58 @@ function UserProfile() {
           </div>
 
           {/* Right Columns - Settings & Stats */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Stats Cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200/50 p-4 text-center">
-                <FileText size={24} className="text-blue-500 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gray-900">{stats.resumes}</p>
-                <p className="text-xs text-gray-500">Resumes</p>
-              </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200/50 p-4 text-center">
-                <Download size={24} className="text-emerald-500 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gray-900">{stats.downloads}</p>
-                <p className="text-xs text-gray-500">Downloads</p>
-              </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200/50 p-4 text-center">
-                <Eye size={24} className="text-purple-500 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gray-900">{stats.views}</p>
-                <p className="text-xs text-gray-500">Views</p>
-              </div>
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200/50 p-4 text-center">
-                <Briefcase size={24} className="text-orange-500 mx-auto mb-2" />
-                <p className="text-2xl font-bold text-gray-900">{stats.templates}</p>
-                <p className="text-xs text-gray-500">Templates</p>
-              </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              {[
+                { icon: FileText, label: "Resumes", value: stats.resumes, color: "text-blue-500" },
+                { icon: Download, label: "Downloads", value: stats.downloads, color: "text-emerald-500" },
+                { icon: Eye, label: "Views", value: stats.views, color: "text-purple-500" },
+                { icon: Briefcase, label: "Templates", value: stats.templates, color: "text-orange-500" },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-white rounded-2xl shadow-sm border border-gray-200/50 p-3 sm:p-4 text-center">
+                  <stat.icon size={20} className={`${stat.color} mx-auto mb-1 sm:mb-2 sm:w-[24px] sm:h-[24px]`} />
+                  <p className="text-xl sm:text-2xl font-bold text-gray-900">{stat.value}</p>
+                  <p className="text-[10px] sm:text-xs text-gray-500">{stat.label}</p>
+                </div>
+              ))}
             </div>
 
             {/* Security Settings */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200/50 flex items-center gap-2">
-                <Shield size={20} className="text-blue-600" />
-                <h3 className="font-semibold text-gray-900">Security</h3>
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200/50 flex items-center gap-2">
+                <Shield size={18} className="text-blue-600 sm:w-[20px] sm:h-[20px]" />
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Security</h3>
               </div>
-              <div className="p-6 space-y-4">
+              <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
                 <button
                   onClick={() => setShowPasswordModal(true)}
-                  className="w-full flex items-center justify-between py-3 px-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200"
+                  className="w-full flex items-center justify-between py-2.5 sm:py-3 px-3 sm:px-4 bg-gray-50 hover:bg-gray-100 rounded-xl transition-all duration-200"
                 >
-                  <div className="flex items-center gap-3">
-                    <Lock size={18} className="text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Change Password</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Lock size={16} className="text-gray-500 sm:w-[18px] sm:h-[18px]" />
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Change Password</span>
                   </div>
-                  <ChevronRight size={18} className="text-gray-400" />
+                  <ChevronRight size={16} className="text-gray-400 sm:w-[18px] sm:h-[18px]" />
                 </button>
 
-                <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <Shield size={18} className="text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Two-Factor Authentication</span>
+                <div className="flex items-center justify-between py-2.5 sm:py-3 px-3 sm:px-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Shield size={16} className="text-gray-500 sm:w-[18px] sm:h-[18px]" />
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Two-Factor Auth</span>
                   </div>
                   <button
                     onClick={() => {
                       setTwoFactor(!twoFactor);
                       updateSettings("twoFactor", !twoFactor);
                     }}
-                    className={`relative w-12 h-6 rounded-full transition-all duration-300 ${
+                    className={`relative w-10 sm:w-12 h-5 sm:h-6 rounded-full transition-all duration-300 flex-shrink-0 ${
                       twoFactor ? "bg-blue-600" : "bg-gray-300"
                     }`}
                   >
                     <div
-                      className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 ${
-                        twoFactor ? "right-1" : "left-1"
+                      className={`absolute top-0.5 sm:top-1 w-3.5 sm:w-4 h-3.5 sm:h-4 rounded-full bg-white transition-all duration-300 ${
+                        twoFactor ? "right-0.5 sm:right-1" : "left-0.5 sm:left-1"
                       }`}
                     />
                   </button>
@@ -675,28 +738,31 @@ function UserProfile() {
 
                 <button
                   onClick={() => setShowDeleteModal(true)}
-                  className="w-full flex items-center justify-between py-3 px-4 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200 border border-red-200"
+                  className="w-full flex items-center justify-between py-2.5 sm:py-3 px-3 sm:px-4 bg-red-50 hover:bg-red-100 rounded-xl transition-all duration-200 border border-red-200"
                 >
-                  <div className="flex items-center gap-3">
-                    <AlertCircle size={18} className="text-red-500" />
-                    <span className="text-sm font-medium text-red-600">Delete Account</span>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <AlertCircle size={16} className="text-red-500 sm:w-[18px] sm:h-[18px]" />
+                    <span className="text-xs sm:text-sm font-medium text-red-600">Delete Account</span>
                   </div>
-                  <ChevronRight size={18} className="text-red-400" />
+                  <ChevronRight size={16} className="text-red-400 sm:w-[18px] sm:h-[18px]" />
                 </button>
               </div>
             </div>
 
             {/* Preferences */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200/50 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200/50 flex items-center gap-2">
-                <Bell size={20} className="text-blue-600" />
-                <h3 className="font-semibold text-gray-900">Preferences</h3>
+              <div className="px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-200/50 flex items-center gap-2">
+                <Bell size={18} className="text-blue-600 sm:w-[20px] sm:h-[20px]" />
+                <h3 className="font-semibold text-gray-900 text-sm sm:text-base">Preferences</h3>
               </div>
-              <div className="p-6 space-y-4">
-                <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    {theme === "light" ? <Sun size={18} className="text-gray-500" /> : <Moon size={18} className="text-gray-500" />}
-                    <span className="text-sm font-medium text-gray-700">Dark Mode</span>
+              <div className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+                <div className="flex items-center justify-between py-2.5 sm:py-3 px-3 sm:px-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    {theme === "light" ? 
+                      <Sun size={16} className="text-gray-500 sm:w-[18px] sm:h-[18px]" /> : 
+                      <Moon size={16} className="text-gray-500 sm:w-[18px] sm:h-[18px]" />
+                    }
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Dark Mode</span>
                   </div>
                   <button
                     onClick={() => {
@@ -704,44 +770,44 @@ function UserProfile() {
                       setTheme(newTheme);
                       updateSettings("theme", newTheme);
                     }}
-                    className={`relative w-12 h-6 rounded-full transition-all duration-300 ${
+                    className={`relative w-10 sm:w-12 h-5 sm:h-6 rounded-full transition-all duration-300 flex-shrink-0 ${
                       theme === "dark" ? "bg-blue-600" : "bg-gray-300"
                     }`}
                   >
                     <div
-                      className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 ${
-                        theme === "dark" ? "right-1" : "left-1"
+                      className={`absolute top-0.5 sm:top-1 w-3.5 sm:w-4 h-3.5 sm:h-4 rounded-full bg-white transition-all duration-300 ${
+                        theme === "dark" ? "right-0.5 sm:right-1" : "left-0.5 sm:left-1"
                       }`}
                     />
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <Bell size={18} className="text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Email Notifications</span>
+                <div className="flex items-center justify-between py-2.5 sm:py-3 px-3 sm:px-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Bell size={16} className="text-gray-500 sm:w-[18px] sm:h-[18px]" />
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Email Notifications</span>
                   </div>
                   <button
                     onClick={() => {
                       setNotifications(!notifications);
                       updateSettings("notifications", !notifications);
                     }}
-                    className={`relative w-12 h-6 rounded-full transition-all duration-300 ${
+                    className={`relative w-10 sm:w-12 h-5 sm:h-6 rounded-full transition-all duration-300 flex-shrink-0 ${
                       notifications ? "bg-blue-600" : "bg-gray-300"
                     }`}
                   >
                     <div
-                      className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all duration-300 ${
-                        notifications ? "right-1" : "left-1"
+                      className={`absolute top-0.5 sm:top-1 w-3.5 sm:w-4 h-3.5 sm:h-4 rounded-full bg-white transition-all duration-300 ${
+                        notifications ? "right-0.5 sm:right-1" : "left-0.5 sm:left-1"
                       }`}
                     />
                   </button>
                 </div>
 
-                <div className="flex items-center justify-between py-3 px-4 bg-gray-50 rounded-xl">
-                  <div className="flex items-center gap-3">
-                    <Globe size={18} className="text-gray-500" />
-                    <span className="text-sm font-medium text-gray-700">Profile Visibility</span>
+                <div className="flex items-center justify-between py-2.5 sm:py-3 px-3 sm:px-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <Globe size={16} className="text-gray-500 sm:w-[18px] sm:h-[18px]" />
+                    <span className="text-xs sm:text-sm font-medium text-gray-700">Profile Visibility</span>
                   </div>
                   <select
                     value={privacy}
@@ -749,7 +815,7 @@ function UserProfile() {
                       setPrivacy(e.target.value);
                       updateSettings("privacy", e.target.value);
                     }}
-                    className="px-3 py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 outline-none text-sm bg-white"
+                    className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg border border-gray-200 focus:border-blue-500 outline-none text-xs sm:text-sm bg-white"
                   >
                     <option value="public">Public</option>
                     <option value="private">Private</option>
@@ -766,20 +832,20 @@ function UserProfile() {
           CHANGE PASSWORD MODAL
           ============================================================ */}
       {showPasswordModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-gray-900">Change Password</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900">Change Password</h3>
               <button
                 onClick={() => setShowPasswordModal(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition"
               >
-                <X size={20} />
+                <X size={18} className="sm:w-[20px] sm:h-[20px]" />
               </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1.5">
+                <label className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">
                   Current Password
                 </label>
                 <input
@@ -788,12 +854,12 @@ function UserProfile() {
                   onChange={(e) =>
                     setPasswordData({ ...passwordData, currentPassword: e.target.value })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                   placeholder="Enter current password"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1.5">
+                <label className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">
                   New Password
                 </label>
                 <input
@@ -802,12 +868,12 @@ function UserProfile() {
                   onChange={(e) =>
                     setPasswordData({ ...passwordData, newPassword: e.target.value })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                   placeholder="Enter new password"
                 />
               </div>
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-1.5">
+                <label className="text-xs sm:text-sm font-medium text-gray-700 block mb-1">
                   Confirm New Password
                 </label>
                 <input
@@ -816,21 +882,21 @@ function UserProfile() {
                   onChange={(e) =>
                     setPasswordData({ ...passwordData, confirmPassword: e.target.value })
                   }
-                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none"
+                  className="w-full px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none text-sm"
                   placeholder="Confirm new password"
                 />
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
+            <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
               <button
                 onClick={() => setShowPasswordModal(false)}
-                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition"
+                className="flex-1 py-2 sm:py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleChangePassword}
-                className="flex-1 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300"
+                className="flex-1 py-2 sm:py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-semibold shadow-md shadow-blue-500/25 hover:shadow-blue-500/40 transition-all duration-300 text-sm"
               >
                 Update Password
               </button>
@@ -843,34 +909,34 @@ function UserProfile() {
           DELETE ACCOUNT MODAL
           ============================================================ */}
       {showDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-3 sm:p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-bold text-red-600">Delete Account</h3>
+              <h3 className="text-lg sm:text-xl font-bold text-red-600">Delete Account</h3>
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="p-2 rounded-lg hover:bg-gray-100 transition"
+                className="p-1.5 sm:p-2 rounded-lg hover:bg-gray-100 transition"
               >
-                <X size={20} />
+                <X size={18} className="sm:w-[20px] sm:h-[20px]" />
               </button>
             </div>
-            <div className="text-center py-4">
-              <AlertCircle size={48} className="text-red-500 mx-auto mb-3" />
-              <p className="text-gray-700 font-medium">Are you sure you want to delete your account?</p>
-              <p className="text-sm text-gray-500 mt-2">
+            <div className="text-center py-3 sm:py-4">
+              <AlertCircle size={40} className="text-red-500 mx-auto mb-2 sm:mb-3 sm:w-[48px] sm:h-[48px]" />
+              <p className="text-sm sm:text-base text-gray-700 font-medium">Are you sure you want to delete your account?</p>
+              <p className="text-xs sm:text-sm text-gray-500 mt-1.5 sm:mt-2">
                 This action cannot be undone. All your resumes and data will be permanently deleted.
               </p>
             </div>
-            <div className="flex gap-3 mt-4">
+            <div className="flex gap-2 sm:gap-3 mt-3 sm:mt-4">
               <button
                 onClick={() => setShowDeleteModal(false)}
-                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition"
+                className="flex-1 py-2 sm:py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition text-sm"
               >
                 Cancel
               </button>
               <button
                 onClick={handleDeleteAccount}
-                className="flex-1 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold shadow-md shadow-red-500/25 transition-all duration-300"
+                className="flex-1 py-2 sm:py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-semibold shadow-md shadow-red-500/25 transition-all duration-300 text-sm"
               >
                 Delete Account
               </button>
@@ -879,6 +945,7 @@ function UserProfile() {
         </div>
       )}
 
+      {/* Toast Container */}
       <ToastContainer
         position="top-right"
         autoClose={3000}
@@ -886,6 +953,7 @@ function UserProfile() {
         newestOnTop
         closeOnClick
         theme="light"
+        className="z-50"
       />
     </div>
   );

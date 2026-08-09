@@ -6,7 +6,6 @@ import TemplateList from "./pages/resumeAllPages/TemplateList";
 import Register from "./pages/auth/RegisterUser1";
 import Login from "./pages/auth/LoginUser1";
 import Home from "./pages/dashboard/Home4";
-import Feedback from "./Feedback/FeedBackl";
 import UserRoutes from "./protectedRouter/ProtectedRoutes";
 
 import ResumeBuilder from "./pages/resumeAllPages/ResumeBuilder";
@@ -85,14 +84,7 @@ const router = createBrowserRouter([
     ),
   },
 
-  {
-    path: "/review",
-    element: (
-      <UserRoutes>
-        <Feedback />
-      </UserRoutes>
-    ),
-  },
+ 
 
   // =========================
   // UNKNOWN URL
@@ -109,30 +101,5 @@ const App = () => {
 };
 
 export default App;
-
-
-
-/*
-const router = createBrowserRouter([
-  { path: "/", element: <Home /> },
-  { path: "/login", element: <Login /> },
-  { path: "/register", element: <Register /> },
-
-  {
-    element: <ProtectedRoutes />,
-    children: [
-      { path: "/dashboard", element: <Dashboard /> },
-      { path: "/templates/:category", element: <TemplateList /> },
-      { path: "/resume-builder/:slug", element: <ResumeBuilder /> },
-      { path: "/resume-view/:category/:slug/:id", element: <ResumeViewPage /> },
-      { path: "/review", element: <Feedback /> },
-      { path: "/view", element: <ViewResume /> },
-    ],
-  },
-]);
-*/
-
-
-
 
 

@@ -102,11 +102,27 @@ export default function Dashboard() {
     },
   ];
 
-  // Stats data with dynamic values
+  /**
+   * Safely format a number to fixed decimal places
+   * Handles null, undefined, string, and number values
+   */
+  const safeToFixed = (value, decimals = 1) => {
+    if (value === null || value === undefined) return "0.0";
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return "0.0";
+    return num.toFixed(decimals);
+  };
+
+  // Stats data with dynamic values - FIXED: safe handling of average
   const stats = [
     { label: "Templates", value: "100+", icon: <Layout size={18} />, color: "text-blue-500" },
     { label: "Users", value: "50+", icon: <Users size={18} />, color: "text-purple-500" },
-    { label: "Rating", value: feedbackStats.average?.toFixed(1) || "3.9", icon: <Star size={18} />, color: "text-amber-500" },
+    { 
+      label: "Rating", 
+      value: safeToFixed(feedbackStats.average, 1), 
+      icon: <Star size={18} />, 
+      color: "text-amber-500" 
+    },
     { label: "Success Rate", value: "94%", icon: <TrendingUp size={18} />, color: "text-emerald-500" },
   ];
 
@@ -160,14 +176,14 @@ export default function Dashboard() {
 
       if (res.ok && data.success) {
         setFeedbacks(data.feedbacks || []);
-        setFeedbackStats(data.stats || {
-          total: 0,
-          average: 0,
-          fiveStar: 0,
-          fourStar: 0,
-          threeStar: 0,
-          twoStar: 0,
-          oneStar: 0,
+        setFeedbackStats({
+          total: data.stats?.total || 0,
+          average: data.stats?.average || 0,
+          fiveStar: data.stats?.fiveStar || 0,
+          fourStar: data.stats?.fourStar || 0,
+          threeStar: data.stats?.threeStar || 0,
+          twoStar: data.stats?.twoStar || 0,
+          oneStar: data.stats?.oneStar || 0,
         });
         setTotalPages(data.pagination?.totalPages || 1);
         setTotalItems(data.pagination?.totalItems || 0);
@@ -245,7 +261,9 @@ export default function Dashboard() {
    * Render star rating
    */
   const renderStars = (rating) => {
-    return "★".repeat(rating) + "☆".repeat(5 - rating);
+    if (!rating || rating < 0) return "☆☆☆☆☆";
+    const fullStars = Math.min(Math.round(rating), 5);
+    return "★".repeat(fullStars) + "☆".repeat(5 - fullStars);
   };
 
   /**
@@ -255,6 +273,7 @@ export default function Dashboard() {
     if (!date) return "Recently";
     try {
       const d = new Date(date);
+      if (isNaN(d.getTime())) return "Recently";
       const now = new Date();
       const diff = Math.floor((now - d) / (1000 * 60 * 60 * 24));
       if (diff === 0) return "Today";
@@ -485,20 +504,20 @@ export default function Dashboard() {
             )}
           </div>
 
-          {/* Feedback Stats Summary */}
+          {/* Feedback Stats Summary - FIXED: safe toFixed handling */}
           <div className="px-3 sm:px-6 py-2 sm:py-3 bg-gray-50/50 border-b border-gray-200/50">
             <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-[10px] sm:text-xs">
               <div className="flex items-center gap-1 sm:gap-2">
                 <span className="font-medium text-gray-700">⭐ Avg:</span>
-                <span className="font-bold text-amber-500">{feedbackStats.average?.toFixed(1) || 0}/5</span>
+                <span className="font-bold text-amber-500">{safeToFixed(feedbackStats.average, 1)}/5</span>
               </div>
               <div className="w-px h-3 sm:h-4 bg-gray-300"></div>
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-3">
-                <span className="text-emerald-600">5★ {feedbackStats.fiveStar}</span>
-                <span className="text-blue-600">4★ {feedbackStats.fourStar}</span>
-                <span className="text-amber-600">3★ {feedbackStats.threeStar}</span>
-                <span className="text-orange-600">2★ {feedbackStats.twoStar}</span>
-                <span className="text-red-600">1★ {feedbackStats.oneStar}</span>
+                <span className="text-emerald-600">5★ {feedbackStats.fiveStar || 0}</span>
+                <span className="text-blue-600">4★ {feedbackStats.fourStar || 0}</span>
+                <span className="text-amber-600">3★ {feedbackStats.threeStar || 0}</span>
+                <span className="text-orange-600">2★ {feedbackStats.twoStar || 0}</span>
+                <span className="text-red-600">1★ {feedbackStats.oneStar || 0}</span>
               </div>
             </div>
           </div>
